@@ -1,9 +1,8 @@
-# pip install PyMuPDF beautifulsoup4 tqdm
+# pip install PyMuPDF beautifulsoup4 tqdm python-dotenv requests
 
 import fitz
 from tqdm import tqdm
 from bs4 import BeautifulSoup
-import re
 import os
 from dotenv import load_dotenv
 

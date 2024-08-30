@@ -1,11 +1,10 @@
-# pip install python-dotenv
+# pip install requests
 # if ollama is not running, run the following command:
 # net stop winnat
 # net start winnat
-# 
+
 import os
 import requests
-import json
 import time
 from dotenv import load_dotenv
 
