@@ -1,22 +1,55 @@
 # PDF-Summary-Knowledge-Graph-Generator
 
-## 使用步骤
+## Usage Steps
 
-1. 启动Ollama`ollama serve`
-2. 安装依赖
+1. Start Ollama `ollama serve`
+2. Install dependencies
 
 ```bash
 pip install PyMuPDF beautifulsoup4 tqdm python-dotenv requests langchain langchain-community graphviz knowledge-graph-maker
 ```
 
-2. 配置`.env`文件
-3. 运行`PDFParser.py`将pdf转换为txt
-4. 运行`Ollama.py`生成摘要文件`ouutput.txt`
-5. 运行`GraphMaker.py`生成知识图谱`knowledge_graph.png`
+2. Configure the `.env` file
+3. Run `PDFParser.py` to convert pdf to txt
+4. Run `Ollama.py` to generate summary file `output.txt`
+5. Run `GraphMaker.py` to generate knowledge graph `knowledge_graph.png`
 
-## 样例
+## Introduction
 
-摘要：
+This project is a comprehensive tool designed to extract information from PDF documents, generate summaries, and create visual knowledge graphs. It leverages advanced natural language processing techniques and large language models to process and analyze academic papers or other complex documents.
+
+## Core Components and Principles
+
+1. PDF Parsing (PDFParser.py)
+
+- Utilizes PyMuPDF to convert PDF files into HTML format.
+- Employs BeautifulSoup to extract clean text from the HTML, focusing on relevant content and excluding references.
+- Outputs a temporary text file for further processing.
+
+2. Text Summarization (Ollama.py)
+
+- Integrates with Ollama, a local large language model server.
+- Sends the extracted text to the Ollama API for summarization.
+- Implements retry mechanisms and error handling for robust API interactions.
+- Generates a concise summary of the input document.
+
+3. Knowledge Graph Generation (GraphMaker.py)
+
+- Uses the LangChain library to split the summary into manageable chunks.
+- Employs a custom ontology to define entity types and relationships.
+- Utilizes the Ollama model to extract entities and relationships from the text.
+- Constructs a knowledge graph based on the extracted information.
+- Visualizes the graph using Graphviz, with customizable appearance settings.
+
+4. Workflow Orchestration (run.py)
+
+- Coordinates the execution of all components in the correct sequence.
+- Manages temporary file creation and cleanup.
+
+## Examples
+
+### Abstract
+
 Here's the rewritten text in the specified format:
 
 **Title:** Fine-Tuning Large Language Models with Human-Inspired Learning Strategies for Medical Question Answering
@@ -64,5 +97,7 @@ This study demonstrates the potential benefits of fine-tuning large language mod
     *   Explore larger language models and specialized LLMs to further assess how model size and pre-training knowledge affect the impact of learning strategies.
 
 **References:** [Shao et al., 37]
-知识图谱：
-![知识图谱](https://i.ibb.co/mCHFjpP/knowledge-graph.png")
+
+### Knowledge Graph
+
+![kg](https://i.ibb.co/mCHFjpP/knowledge-graph.png")
