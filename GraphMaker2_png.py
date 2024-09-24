@@ -122,7 +122,7 @@ def visualize_graph(G):
     plt.title("Knowledge Graph")
     plt.axis('off')
     plt.savefig("knowledge_graph.png")
-    plt.show()
+    # plt.show()  # 移除这行以避免弹出窗口显示图片
     print("Knowledge graph has been generated and saved as 'knowledge_graph.png'.")
 
 def main():

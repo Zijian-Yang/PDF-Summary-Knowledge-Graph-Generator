@@ -3,7 +3,7 @@ import time
 import sys
 
 def run_script(script_name):
-    process = subprocess.Popen(['python', script_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    process = subprocess.Popen(['python3', script_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     success = False
     while True:
         output = process.stdout.readline()
@@ -33,9 +33,10 @@ def main():
             else:
                 if attempt < max_retries - 1:
                     print(f"{script} 未能完成预期任务,正在重试... (尝试 {attempt + 2}/{max_retries})")
-                    time.sleep(2)
+                    time.sleep(5)  # 增加等待时间
                 else:
                     print(f"{script} 在 {max_retries} 次尝试后仍未成功完成。跳过此脚本。\n")
+                    return  # 如果一个任务失败，停止执行后续任务
 
 if __name__ == "__main__":
     main()
