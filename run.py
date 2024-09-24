@@ -3,13 +3,17 @@ import time
 import sys
 
 def run_script(script_name):
-    process = subprocess.Popen(['python3', script_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    success = False
-    while True:
-        output = process.stdout.readline()
-        error = process.stderr.readline()
-        if output == '' and error == '' and process.poll() is not None:
-            break
+    try:
+        process = subprocess.Popen(['python3', script_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        success = False
+        try:
+            output, error = process.communicate(timeout=25)  # 设置超时阈值为25秒
+        except subprocess.TimeoutExpired:
+            process.kill()
+            output, error = process.communicate()
+            print(f"{script_name} 超时终止", file=sys.stderr)
+            return success
+
         if output:
             print(output.strip())
             if script_name == 'PDFParser.py' and 'PDF content has been extracted to pdf_to_text_temp.txt' in output:
@@ -18,14 +22,16 @@ def run_script(script_name):
                 success = True
         if error:
             print(f"错误: {error.strip()}", file=sys.stderr)
+    except Exception as e:
+        print(f"运行 {script_name} 时发生异常: {e}", file=sys.stderr)
     return success
 
 def main():
     scripts = ['PDFParser.py', 'Groq.py', 'GraphMaker2_png.py']
     
-    for script in scripts:
+    for i, script in enumerate(scripts):
         print(f"正在运行 {script}...")
-        max_retries = 3
+        max_retries = 3 if i < len(scripts) - 1 else 1  # 最后一个脚本不重试
         for attempt in range(max_retries):
             if run_script(script):
                 print(f"{script} 运行成功\n")
