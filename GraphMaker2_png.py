@@ -6,6 +6,8 @@ import networkx as nx
 from pyvis.network import Network
 import json
 import time
+import matplotlib
+matplotlib.use('Agg')  # 使用非交互式后端
 import matplotlib.pyplot as plt
 
 load_dotenv()
