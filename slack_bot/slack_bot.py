@@ -26,7 +26,7 @@ def download_file(url, file_path):
 
 async def _download_file(url, file_path):
     async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
+        async with session.get(url, headers={"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"}) as response:
             if response.status == 200:
                 async with aiofiles.open(file_path, mode='wb') as f:
                     await f.write(await response.read())
@@ -54,34 +54,20 @@ async def _run_script():
             return True
     return False
 
-# 处理所有消息事件
-@app.event("message")
-def handle_message(event, say):
-    if "files" not in event:
-        say("请直接发送PDF文件。")
-
-# 处理文件共享事件
-@app.event("file_shared")
-def handle_file_shared_event(body, logger):
-    event = body["event"]
-    if "files" in event:
-        handle_file_shared(event, app.client.chat_postMessage)
-    else:
-        logger.warning("Received file_shared event without files")
-
-# 修改 handle_file_shared 函数
-def handle_file_shared(event, say_function):
+# 处理文件
+def process_file(file_info, say):
     try:
-        file_info = app.client.files_info(file=event["files"][0]["id"])
-        file_url = file_info["file"]["url_private_download"]
-        file_name = file_info["file"]["name"]
+        file_id = file_info["id"]
+        file_name = file_info["name"]
+        file_url = file_info["url_private_download"]
+        channel_id = file_info.get("channels", [None])[0] or file_info.get("ims", [None])[0]
 
         if not file_name.lower().endswith('.pdf'):
-            say_function(channel=event["channel"], text="请上传PDF文件。")
+            say(channel=channel_id, text="请上传PDF文件。")
             return
 
         if file_name in processing_pdfs:
-            say_function(channel=event["channel"], text=f"文件 {file_name} 正在处理中，请稍后。")
+            say(channel=channel_id, text=f"文件 {file_name} 正在处理中，请稍后。")
             return
 
         processing_pdfs.add(file_name)
@@ -90,41 +76,75 @@ def handle_file_shared(event, say_function):
 
         download_success = download_file(file_url, input_pdf_path)
         if not download_success:
-            say_function(channel=event["channel"], text="文件下载失败，请重试。")
+            say(channel=channel_id, text="文件下载失败，请重试。")
             processing_pdfs.remove(file_name)
             return
 
-        say_function(channel=event["channel"], text=f"已接收文件 {file_name}，开始处理...")
+        say(channel=channel_id, text=f"已接收文件 {file_name}，开始处理...")
 
         run_success = run_script()
         if not run_success:
-            say_function(channel=event["channel"], text="处理过程中出现错误，请重试。")
+            say(channel=channel_id, text="处理过程中出现错误，请重试。")
             processing_pdfs.remove(file_name)
             return
 
         try:
             with open(os.path.join('..', 'output.txt'), mode='r') as f:
                 output_text = f.read()
-            say_function(channel=event["channel"], text=output_text)
+            say(channel=channel_id, text=output_text)
 
             app.client.files_upload(
-                channels=event["channel"],
+                channels=channel_id,
                 file=os.path.join('..', "knowledge_graph.png"),
                 title="知识图谱"
             )
         except Exception as e:
             logger.error(f"发送结果失败: {str(e)}")
-            say_function(channel=event["channel"], text="处理完成，但发送结果时出错。")
+            say(channel=channel_id, text="处理完成，但发送结果时出错。")
             return
 
-        say_function(channel=event["channel"], text="处理完成！")
+        say(channel=channel_id, text="处理完成！")
 
     except Exception as e:
         logger.error(f"处理文件时出错: {str(e)}")
-        say_function(channel=event["channel"], text="处理文件时出现错误，请重试。")
+        if channel_id:
+            say(channel=channel_id, text="处理文件时出现错误，请重试。")
     finally:
         if 'file_name' in locals():
             processing_pdfs.remove(file_name)
+
+@app.event("file_created")
+def handle_file_created(body, logger):
+    logger.info(f"Received file_created event: {body}")
+    event = body["event"]
+    file_id = event.get("file_id")
+    if file_id:
+        try:
+            file_info = app.client.files_info(file=file_id)["file"]
+            process_file(file_info, app.client.chat_postMessage)
+        except Exception as e:
+            logger.error(f"Error processing file_created event: {e}")
+    else:
+        logger.warning("Received file_created event without file_id")
+
+@app.event("file_shared")
+def handle_file_shared(body, logger):
+    logger.info(f"Received file_shared event: {body}")
+    event = body["event"]
+    file_id = event.get("file_id")
+    if file_id:
+        try:
+            file_info = app.client.files_info(file=file_id)["file"]
+            process_file(file_info, app.client.chat_postMessage)
+        except Exception as e:
+            logger.error(f"Error processing file_shared event: {e}")
+    else:
+        logger.warning("Received file_shared event without file_id")
+
+@app.event("message")
+def handle_message(event, say):
+    if "files" not in event:
+        say("请直接发送PDF文件。")
 
 # 错误处理
 @app.error
