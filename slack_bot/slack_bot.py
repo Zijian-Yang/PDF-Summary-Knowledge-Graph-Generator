@@ -49,10 +49,10 @@ async def run_script():
     stdout, stderr = await process.communicate()
     if process.returncode == 0:
         logger.info("run.py executed successfully")
-        return True
+        return stdout.decode(), True
     else:
         logger.error(f"run.py execution failed: {stderr.decode()}")
-        return False
+        return stderr.decode(), False
 
 # 处理文件共享事件
 @app.event("file_shared")
@@ -89,9 +89,15 @@ async def handle_file_shared(event, say):
         await say(f"已接收文件 {file_name}，开始处理...")
 
         # 运行run.py
-        run_success = await run_script()
+        output, run_success = await run_script()
         if not run_success:
             await say("处理过程中出现错误，请重试。")
+            processing_pdfs.remove(file_name)
+            return
+
+        # 检查是否成功运行GraphMaker2_png.py
+        if "GraphMaker2_png.py 运行成功" not in output:
+            await say("生成知识图谱失败，请重试。")
             processing_pdfs.remove(file_name)
             return
 
@@ -151,4 +157,3 @@ if __name__ == "__main__":
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
     handler.start()
 
-# 检测run.py是否运行成功
