@@ -7,20 +7,20 @@ import asyncio
 import aiofiles
 import aiohttp
 
-# 加载环境变量
+# Load environment variables
 load_dotenv()
 
-# 配置日志
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# 初始化Slack应用
+# Initialize Slack app
 app = App(token=os.environ["SLACK_BOT_TOKEN"])
 
-# 用于跟踪正在处理的PDF文件
+# Set to track processing PDFs
 processing_pdfs = set()
 
-# 同步函数：下载文件
+# Synchronous function: Download file
 def download_file(url, file_path):
     return asyncio.run(_download_file(url, file_path))
 
@@ -30,13 +30,13 @@ async def _download_file(url, file_path):
             if response.status == 200:
                 async with aiofiles.open(file_path, mode='wb') as f:
                     await f.write(await response.read())
-                logger.info(f"文件已下载: {file_path}")
+                logger.info(f"File downloaded: {file_path}")
                 return True
             else:
-                logger.error(f"文件下载失败: {response.status}")
+                logger.error(f"File download failed: {response.status}")
                 return False
 
-# 同步函数：运行run.py
+# Synchronous function: Run run.py
 def run_script():
     logger.info("Starting to run script...")
     result = asyncio.run(_run_script())
@@ -59,18 +59,18 @@ async def _run_script():
     if stderr:
         logger.error(f'[run.py] stderr:\n{stderr.decode()}')
     
-    if "GraphMaker2_png.py 运行成功" in stdout.decode() or "GraphMaker2_png.py 运行完成" in stdout.decode():
+    if "GraphMaker2_png.py execution successful" in stdout.decode() or "GraphMaker2_png.py execution completed" in stdout.decode():
         return True
     return False
 
-# 处理文件
+# Process file
 def process_file(file_info, say):
     try:
         file_id = file_info["id"]
         file_name = file_info["name"]
         file_url = file_info["url_private_download"]
         
-        # 更安全地获取 channel_id
+        # Safely get channel_id
         channel_id = None
         if "channels" in file_info and file_info["channels"]:
             channel_id = file_info["channels"][0]
@@ -78,15 +78,15 @@ def process_file(file_info, say):
             channel_id = file_info["ims"][0]
         
         if not channel_id:
-            logger.error(f"无法确定 channel_id: {file_info}")
+            logger.error(f"Unable to determine channel_id: {file_info}")
             return
 
         if not file_name.lower().endswith('.pdf'):
-            say(channel=channel_id, text="请上传PDF文件。")
+            say(channel=channel_id, text="Please upload a PDF file.")
             return
 
         if file_name in processing_pdfs:
-            say(channel=channel_id, text=f"文件 {file_name} 正在处理中，请稍后。")
+            say(channel=channel_id, text=f"File {file_name} is currently being processed. Please wait.")
             return
 
         processing_pdfs.add(file_name)
@@ -95,21 +95,21 @@ def process_file(file_info, say):
 
         download_success = download_file(file_url, input_pdf_path)
         if not download_success:
-            say(channel=channel_id, text="文件下载失败，请重试。")
+            say(channel=channel_id, text="File download failed. Please try again.")
             processing_pdfs.remove(file_name)
             return
 
-        say(channel=channel_id, text=f"已接收文件 {file_name}，开始处理...")
+        say(channel=channel_id, text=f"File {file_name} received. Starting processing...")
 
         try:
             run_success = run_script()
             if not run_success:
-                say(channel=channel_id, text="处理过程中出现错误，请查看日志以获取更多信息。")
+                say(channel=channel_id, text="An error occurred during processing. Please check the logs for more information.")
                 processing_pdfs.remove(file_name)
                 return
         except Exception as e:
-            logger.error(f"运行脚本时出错: {str(e)}")
-            say(channel=channel_id, text=f"运行脚本时出现错误: {str(e)}")
+            logger.error(f"Error running script: {str(e)}")
+            say(channel=channel_id, text=f"An error occurred while running the script: {str(e)}")
             processing_pdfs.remove(file_name)
             return
 
@@ -118,43 +118,43 @@ def process_file(file_info, say):
                 output_text = f.read()
             say(channel=channel_id, text=output_text)
 
-            # 上传输出文件
+            # Upload output file
             try:
                 with open("output.txt", "rb") as file_content:
                     upload_result = app.client.files_upload_v2(
                         channels=file_info["channels"],
                         file=file_content,
                         filename="output.txt",
-                        initial_comment="这是处理结果的文本文件。"
+                        initial_comment="This is the text file of the processing result."
                     )
-                logger.info(f"文本文件上传成功: {upload_result}")
+                logger.info(f"Text file upload successful: {upload_result}")
             except Exception as e:
-                logger.error(f"文本文件上传失败: {e}")
+                logger.error(f"Text file upload failed: {e}")
 
-            # 上传图片文件
+            # Upload image file
             try:
                 with open("knowledge_graph.png", "rb") as file_content:
                     upload_result = app.client.files_upload_v2(
                         channels=file_info["channels"],
                         file=file_content,
                         filename="knowledge_graph.png",
-                        initial_comment="这是处理结果的知识图谱。"
+                        initial_comment="This is the knowledge graph of the processing result."
                     )
-                logger.info(f"图片文件上传成功: {upload_result}")
+                logger.info(f"Image file upload successful: {upload_result}")
             except Exception as e:
-                logger.error(f"图片文件上传失败: {e}")
+                logger.error(f"Image file upload failed: {e}")
 
-            say(channel=channel_id, text="处理完成！")
+            say(channel=channel_id, text="Processing complete!")
 
         except Exception as e:
-            logger.error(f"发送结果失败: {str(e)}")
-            say(channel=channel_id, text="处理完成，但发送结果时出错。")
+            logger.error(f"Failed to send results: {str(e)}")
+            say(channel=channel_id, text="Processing complete, but an error occurred while sending the results.")
             return
 
     except Exception as e:
-        logger.error(f"处理文件时出错: {str(e)}")
+        logger.error(f"Error processing file: {str(e)}")
         if channel_id:
-            say(channel=channel_id, text=f"处理文件时出现错误: {str(e)}")
+            say(channel=channel_id, text=f"An error occurred while processing the file: {str(e)}")
     finally:
         if 'file_name' in locals():
             processing_pdfs.remove(file_name)
@@ -182,7 +182,7 @@ def handle_file_shared(body, logger):
     if file_id:
         try:
             file_info = app.client.files_info(file=file_id)["file"]
-            # 确保 file_info 包含 channel_id
+            # Ensure file_info contains channel_id
             if "channels" not in file_info or not file_info["channels"]:
                 file_info["channels"] = [channel_id]
             process_file(file_info, app.client.chat_postMessage)
@@ -194,15 +194,15 @@ def handle_file_shared(body, logger):
 @app.event("message")
 def handle_message(event, say):
     if "files" not in event:
-        say("请直接发送PDF文件。")
+        say("Please send a PDF file directly.")
 
-# 错误处理
+# Error handling
 @app.error
 def error_handler(error, body, logger):
-    logger.error(f"错误: {error}")
-    logger.error(f"请求体: {body}")
+    logger.error(f"Error: {error}")
+    logger.error(f"Request body: {body}")
 
-# 主函数
+# Main function
 if __name__ == "__main__":
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
     handler.start()
