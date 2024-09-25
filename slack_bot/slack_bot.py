@@ -60,7 +60,17 @@ def process_file(file_info, say):
         file_id = file_info["id"]
         file_name = file_info["name"]
         file_url = file_info["url_private_download"]
-        channel_id = file_info.get("channels", [None])[0] or file_info.get("ims", [None])[0]
+        
+        # 更安全地获取 channel_id
+        channel_id = None
+        if "channels" in file_info and file_info["channels"]:
+            channel_id = file_info["channels"][0]
+        elif "ims" in file_info and file_info["ims"]:
+            channel_id = file_info["ims"][0]
+        
+        if not channel_id:
+            logger.error(f"无法确定 channel_id: {file_info}")
+            return
 
         if not file_name.lower().endswith('.pdf'):
             say(channel=channel_id, text="请上传PDF文件。")
@@ -132,9 +142,13 @@ def handle_file_shared(body, logger):
     logger.info(f"Received file_shared event: {body}")
     event = body["event"]
     file_id = event.get("file_id")
+    channel_id = event.get("channel_id")
     if file_id:
         try:
             file_info = app.client.files_info(file=file_id)["file"]
+            # 确保 file_info 包含 channel_id
+            if "channels" not in file_info or not file_info["channels"]:
+                file_info["channels"] = [channel_id]
             process_file(file_info, app.client.chat_postMessage)
         except Exception as e:
             logger.error(f"Error processing file_shared event: {e}")
