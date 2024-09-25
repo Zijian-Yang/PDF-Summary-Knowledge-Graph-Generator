@@ -38,20 +38,29 @@ async def _download_file(url, file_path):
 
 # 同步函数：运行run.py
 def run_script():
-    return asyncio.run(_run_script())
+    logger.info("Starting to run script...")
+    result = asyncio.run(_run_script())
+    logger.info(f"Script run result: {result}")
+    return result
 
 async def _run_script():
+    current_dir = os.getcwd()
+    logger.info(f"Current working directory: {current_dir}")
+    
     process = await asyncio.create_subprocess_exec(
-        'python3', '../run.py',
+        'python3', 'run.py',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
-    while True:
-        line = await process.stdout.readline()
-        if not line:
-            break
-        if "GraphMaker2_png.py 运行成功" in line.decode():
-            return True
+    stdout, stderr = await process.communicate()
+    
+    if stdout:
+        logger.info(f'[run.py] stdout:\n{stdout.decode()}')
+    if stderr:
+        logger.error(f'[run.py] stderr:\n{stderr.decode()}')
+    
+    if "GraphMaker2_png.py 运行成功" in stdout.decode() or "GraphMaker2_png.py 运行完成" in stdout.decode():
+        return True
     return False
 
 # 处理文件
@@ -82,7 +91,7 @@ def process_file(file_info, say):
 
         processing_pdfs.add(file_name)
 
-        input_pdf_path = os.path.join('..', 'input.pdf')
+        input_pdf_path = 'input.pdf'
 
         download_success = download_file(file_url, input_pdf_path)
         if not download_success:
@@ -92,20 +101,26 @@ def process_file(file_info, say):
 
         say(channel=channel_id, text=f"已接收文件 {file_name}，开始处理...")
 
-        run_success = run_script()
-        if not run_success:
-            say(channel=channel_id, text="处理过程中出现错误，请重试。")
+        try:
+            run_success = run_script()
+            if not run_success:
+                say(channel=channel_id, text="处理过程中出现错误，请查看日志以获取更多信息。")
+                processing_pdfs.remove(file_name)
+                return
+        except Exception as e:
+            logger.error(f"运行脚本时出错: {str(e)}")
+            say(channel=channel_id, text=f"运行脚本时出现错误: {str(e)}")
             processing_pdfs.remove(file_name)
             return
 
         try:
-            with open(os.path.join('..', 'output.txt'), mode='r') as f:
+            with open('output.txt', mode='r') as f:
                 output_text = f.read()
             say(channel=channel_id, text=output_text)
 
             app.client.files_upload(
                 channels=channel_id,
-                file=os.path.join('..', "knowledge_graph.png"),
+                file="knowledge_graph.png",
                 title="知识图谱"
             )
         except Exception as e:
@@ -118,7 +133,7 @@ def process_file(file_info, say):
     except Exception as e:
         logger.error(f"处理文件时出错: {str(e)}")
         if channel_id:
-            say(channel=channel_id, text="处理文件时出现错误，请重试。")
+            say(channel=channel_id, text=f"处理文件时出现错误: {str(e)}")
     finally:
         if 'file_name' in locals():
             processing_pdfs.remove(file_name)
