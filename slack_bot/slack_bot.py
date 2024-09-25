@@ -20,8 +20,11 @@ app = App(token=os.environ["SLACK_BOT_TOKEN"])
 # 用于跟踪正在处理的PDF文件
 processing_pdfs = set()
 
-# 异步函数：下载文件
-async def download_file(url, file_path):
+# 同步函数：下载文件
+def download_file(url, file_path):
+    return asyncio.run(_download_file(url, file_path))
+
+async def _download_file(url, file_path):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             if response.status == 200:
@@ -33,8 +36,11 @@ async def download_file(url, file_path):
                 logger.error(f"文件下载失败: {response.status}")
                 return False
 
-# 异步函数：运行run.py
-async def run_script():
+# 同步函数：运行run.py
+def run_script():
+    return asyncio.run(_run_script())
+
+async def _run_script():
     process = await asyncio.create_subprocess_exec(
         'python3', '../run.py',
         stdout=asyncio.subprocess.PIPE,
@@ -50,72 +56,72 @@ async def run_script():
 
 # 处理所有消息事件
 @app.event("message")
-async def handle_message(event, say):
+def handle_message(event, say):
     if "files" in event:
-        await handle_file_shared(event, say)
+        handle_file_shared(event, say)
     else:
-        await say("请直接发送PDF文件。")
+        say("请直接发送PDF文件。")
 
 # 处理文件共享事件
-async def handle_file_shared(event, say):
+def handle_file_shared(event, say):
     try:
         file_info = app.client.files_info(file=event["files"][0]["id"])
         file_url = file_info["file"]["url_private_download"]
         file_name = file_info["file"]["name"]
 
         if not file_name.lower().endswith('.pdf'):
-            await say("请上传PDF文件。")
+            say("请上传PDF文件。")
             return
 
         if file_name in processing_pdfs:
-            await say(f"文件 {file_name} 正在处理中，请稍后。")
+            say(f"文件 {file_name} 正在处理中，请稍后。")
             return
 
         processing_pdfs.add(file_name)
 
         input_pdf_path = os.path.join('..', 'input.pdf')
 
-        download_success = await download_file(file_url, input_pdf_path)
+        download_success = download_file(file_url, input_pdf_path)
         if not download_success:
-            await say("文件下载失败，请重试。")
+            say("文件下载失败，请重试。")
             processing_pdfs.remove(file_name)
             return
 
-        await say(f"已接收文件 {file_name}，开始处理...")
+        say(f"已接收文件 {file_name}，开始处理...")
 
-        run_success = await run_script()
+        run_success = run_script()
         if not run_success:
-            await say("处理过程中出现错误，请重试。")
+            say("处理过程中出现错误，请重试。")
             processing_pdfs.remove(file_name)
             return
 
         try:
-            async with aiofiles.open(os.path.join('..', 'output.txt'), mode='r') as f:
-                output_text = await f.read()
-            await say(output_text)
+            with open(os.path.join('..', 'output.txt'), mode='r') as f:
+                output_text = f.read()
+            say(output_text)
 
-            await app.client.files_upload(
+            app.client.files_upload(
                 channels=event["channel"],
                 file=os.path.join('..', "knowledge_graph.png"),
                 title="知识图谱"
             )
         except Exception as e:
             logger.error(f"发送结果失败: {str(e)}")
-            await say("处理完成，但发送结果时出错。")
+            say("处理完成，但发送结果时出错。")
             return
 
-        await say("处理完成！")
+        say("处理完成！")
 
     except Exception as e:
         logger.error(f"处理文件时出错: {str(e)}")
-        await say("处理文件时出现错误，请重试。")
+        say("处理文件时出现错误，请重试。")
     finally:
         if 'file_name' in locals():
             processing_pdfs.remove(file_name)
 
 # 错误处理
 @app.error
-async def error_handler(error, body, logger):
+def error_handler(error, body, logger):
     logger.error(f"错误: {error}")
     logger.error(f"请求体: {body}")
 
