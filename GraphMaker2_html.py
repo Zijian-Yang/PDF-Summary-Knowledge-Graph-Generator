@@ -1,3 +1,4 @@
+# 已废弃的知识图谱生成脚本，使用GraphMaker2_png.py代替
 import os
 import re
 from dotenv import load_dotenv

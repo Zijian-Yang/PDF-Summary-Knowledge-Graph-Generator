@@ -1,3 +1,7 @@
+# pip install slack_bolt slack_sdk python-dotenv
+# pip install aiohttp aiofiles
+# 该程序为运行在服务器上的slack机器人，用于接收来自slack的文件上传请求，并进行处理，将处理结果发送回slack
+
 import os
 import logging
 from dotenv import load_dotenv

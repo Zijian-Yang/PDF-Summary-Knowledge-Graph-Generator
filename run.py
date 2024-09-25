@@ -1,3 +1,5 @@
+# 该程序为工作流的主程序，用于依次运行各个脚本
+
 import subprocess
 import time
 import sys

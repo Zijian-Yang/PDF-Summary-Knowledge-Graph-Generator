@@ -1,3 +1,4 @@
+# 该程序为知识图谱生成脚本，使用Groq API进行处理
 import os
 import re
 from dotenv import load_dotenv
