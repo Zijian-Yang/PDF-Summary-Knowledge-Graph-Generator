@@ -118,17 +118,38 @@ def process_file(file_info, say):
                 output_text = f.read()
             say(channel=channel_id, text=output_text)
 
-            app.client.files_upload(
-                channels=channel_id,
-                file="knowledge_graph.png",
-                title="知识图谱"
-            )
+            # 上传输出文件
+            try:
+                with open("output.txt", "rb") as file_content:
+                    upload_result = app.client.files_upload_v2(
+                        channels=file_info["channels"],
+                        file=file_content,
+                        filename="output.txt",
+                        initial_comment="这是处理结果的文本文件。"
+                    )
+                logger.info(f"文本文件上传成功: {upload_result}")
+            except Exception as e:
+                logger.error(f"文本文件上传失败: {e}")
+
+            # 上传图片文件
+            try:
+                with open("output.png", "rb") as file_content:
+                    upload_result = app.client.files_upload_v2(
+                        channels=file_info["channels"],
+                        file=file_content,
+                        filename="output.png",
+                        initial_comment="这是处理结果的图片文件。"
+                    )
+                logger.info(f"图片文件上传成功: {upload_result}")
+            except Exception as e:
+                logger.error(f"图片文件上传失败: {e}")
+
+            say(channel=channel_id, text="处理完成！")
+
         except Exception as e:
             logger.error(f"发送结果失败: {str(e)}")
             say(channel=channel_id, text="处理完成，但发送结果时出错。")
             return
-
-        say(channel=channel_id, text="处理完成！")
 
     except Exception as e:
         logger.error(f"处理文件时出错: {str(e)}")
