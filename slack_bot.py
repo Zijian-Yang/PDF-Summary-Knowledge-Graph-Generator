@@ -133,12 +133,12 @@ def process_file(file_info, say):
 
             # 上传图片文件
             try:
-                with open("output.png", "rb") as file_content:
+                with open("knowledge_graph.png", "rb") as file_content:
                     upload_result = app.client.files_upload_v2(
                         channels=file_info["channels"],
                         file=file_content,
-                        filename="output.png",
-                        initial_comment="这是处理结果的图片文件。"
+                        filename="knowledge_graph.png",
+                        initial_comment="这是处理结果的知识图谱。"
                     )
                 logger.info(f"图片文件上传成功: {upload_result}")
             except Exception as e:
