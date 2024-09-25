@@ -22,6 +22,8 @@ def run_script(script_name):
                 success = True
             elif script_name == 'Groq.py' and 'Summary generated and saved to output.txt' in output:
                 success = True
+            elif script_name == 'ReferenceGenerator.py' and len(output.strip()) > 0:  # Any output is considered success
+                success = True
             elif script_name == 'GraphMaker2_png.py' and 'Knowledge graph has been generated and saved as' in output:
                 success = True
         if error:
@@ -31,7 +33,7 @@ def run_script(script_name):
     return success
 
 def main():
-    scripts = ['PDFParser.py', 'Groq.py', 'GraphMaker2_png.py']
+    scripts = ['PDFParser.py', 'Groq.py', 'ReferenceGenerator.py', 'GraphMaker2_png.py']
     
     for i, script in enumerate(scripts):
         print(f"Running {script}...")
