@@ -150,3 +150,5 @@ async def handle_mentions(event, say):
 if __name__ == "__main__":
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
     handler.start()
+
+# 检测run.py是否运行成功

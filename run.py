@@ -20,6 +20,8 @@ def run_script(script_name):
                 success = True
             elif script_name == 'Groq.py' and 'Summary generated and saved to output.txt' in output:
                 success = True
+            elif script_name == 'GraphMaker2_png.py' and 'Knowledge graph has been generated and saved as' in output:
+                success = True
         if error:
             print(f"错误: {error.strip()}", file=sys.stderr)
     except Exception as e:
@@ -31,7 +33,7 @@ def main():
     
     for i, script in enumerate(scripts):
         print(f"正在运行 {script}...")
-        max_retries = 3 if i < len(scripts) - 1 else 1  # 最后一个脚本不重试
+        max_retries = 3 if i < len(scripts) - 1 else 1  # 最后一个脚本只尝试一次
         for attempt in range(max_retries):
             if run_script(script):
                 print(f"{script} 运行成功\n")
@@ -40,9 +42,13 @@ def main():
                 if attempt < max_retries - 1:
                     print(f"{script} 未能完成预期任务,正在重试... (尝试 {attempt + 2}/{max_retries})")
                     time.sleep(5)  # 增加等待时间
+                elif script == 'GraphMaker2_png.py':
+                    print(f"{script} 运行完成，但未检测到成功消息。继续执行。\n")
                 else:
                     print(f"{script} 在 {max_retries} 次尝试后仍未成功完成。跳过此脚本。\n")
                     return  # 如果一个任务失败，停止执行后续任务
 
 if __name__ == "__main__":
     main()
+
+# 对最后一段脚本不需要检测成功，等待结束即可。
